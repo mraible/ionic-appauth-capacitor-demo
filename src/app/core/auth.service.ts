@@ -1,28 +1,27 @@
 import { Platform } from '@ionic/angular';
 import { Injectable } from '@angular/core';
 import { IonicAuth, IonicAuthorizationRequestHandler } from 'ionic-appauth';
-import { IonicImplicitRequestHandler } from 'ionic-appauth/lib/implicit-request-handler';
-import { Plugins, AppLaunchUrl } from '@capacitor/core';
+import { AppUrlOpen, Plugins } from '@capacitor/core';
 
 import { SecureStorageService } from './cordova/secure-storage.service';
 import { RequestorService } from './angular/requestor.service';
 import { CapacitorStorageService } from './capacitor/storage.service';
 import { CapacitorBrowserService } from './capacitor/browser.service';
 
-const { App } = Plugins;
+const {App} = Plugins;
 
 @Injectable({
   providedIn: 'root'
 })
-export class AuthService extends IonicAuth  {
+export class AuthService extends IonicAuth {
 
   constructor(
-    requestor : RequestorService,
-    storage : CapacitorStorageService,
-    secureStorage : SecureStorageService,
-    browser : CapacitorBrowserService,
-    private platform : Platform
-  ){
+    requestor: RequestorService,
+    storage: CapacitorStorageService,
+    secureStorage: SecureStorageService,
+    browser: CapacitorBrowserService,
+    private platform: Platform
+  ) {
     super(
       (platform.is('mobile') && !platform.is('mobileweb')) ? browser : undefined,
       (platform.is('mobile') && !platform.is('mobileweb')) ? secureStorage : storage,
@@ -34,10 +33,10 @@ export class AuthService extends IonicAuth  {
   }
 
   public async startUpAsync() {
-    if(this.platform.is('mobile') && !this.platform.is('mobileweb')){
-      let appLaunchUrl : AppLaunchUrl = await App.getLaunchUrl();
-      if(appLaunchUrl.url != undefined)
-        this.handleCallback(appLaunchUrl.url);
+    if (this.platform.is('mobile') && !this.platform.is('mobileweb')) {
+      App.addListener('appUrlOpen', (data: AppUrlOpen) => {
+        this.handleCallback(data.url);
+      });
     }
 
     super.startUpAsync();
@@ -52,10 +51,10 @@ export class AuthService extends IonicAuth  {
       this.authConfig = {
         identity_client: clientId,
         identity_server: issuer,
-        redirect_url: 'com.oktapreview.dev-737523:/callback',
+        redirect_url: 'com.okta.developer:/callback',
         scopes: scopes,
         usePkce: true,
-        end_session_redirect_url: 'com.oktapreview.dev-737523:/logout',
+        end_session_redirect_url: 'com.okta.developer:/logout',
       };
     } else {
       this.authConfig = {
@@ -71,11 +70,11 @@ export class AuthService extends IonicAuth  {
   }
 
   private handleCallback(callbackUrl: string): void {
-    if ((callbackUrl).indexOf(this.authConfig.redirect_url) === 0){
-      this.AuthorizationCallBack(callbackUrl);
+    if ((callbackUrl).indexOf(this.authConfig.redirect_url) === 0) {
+      this.AuthorizationCallBack(callbackUrl).catch(error => console.error(error));
     }
 
-    if ((callbackUrl).indexOf(this.authConfig.end_session_redirect_url) === 0){
+    if ((callbackUrl).indexOf(this.authConfig.end_session_redirect_url) === 0) {
       this.EndSessionCallBack();
     }
   }
